@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+
+    <!-- Load c3.css -->
+    <link href="./css/c3.min.css" rel="stylesheet" type="text/css">
+
+    <!-- Load d3.js and c3.js -->
+    <script src="./js/d3.min.js" charset="utf-8"></script>
+    <script src="./js/c3.min.js"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+</head>
+<body>
+
+<div id="progress"></div>
+<div id="remaining"></div>
+
+</body>
+
+<script>
+    var getFakeData = function () {
+        return {
+            'earningsThisWeek': 500 * Math.random(),
+            'earningsLastWeek': 450 * Math.random(),
+            'minutesWorkedThisWeek': 1500 * Math.random(),
+            'minutesWorkedLastWeek': 2200 * Math.random(),
+            'weeklyEarningsGoal': 550 * Math.random()
+        };
+    };
+
+    var getSampleData = function (uid) {
+        return jQuery.ajax({
+            url: 'https://myrev.feature.rev.com/api/v1/account/earnings/' + uid,
+            method: 'GET',
+        })
+                .done(function() {
+                    if (console && console.log) {
+                        console.log(data);
+                    }
+                });
+    };
+
+    var getPrefernceData = function () {
+        return jQuery.ajax({
+            url: '',
+            method: 'GET',
+        })
+                .done(buildGuage(data));
+    };
+
+
+    var
+    estimateMinutesLeft = function (data) {
+        var rate = data['minutesWorkedLastWeek'] / data['earningsLastWeek'];
+        //rate is minutes per dollar
+        var workleft = data['weeklyEarningsGoal'] - data['earningsThisWeek'];
+        //workleft is dollars remaining towards goal
+
+        if (workleft <= 0) {
+            return 0;
+        }
+        var minsLeft = workleft * rate;
+        return minsLeft;
+
+    };
+    var buildGuage = function (data) {
+        var progress = parseFloat(data['earningsThisWeek'] / data['weeklyEarningsGoal'] * 100).toFixed(1);
+        var chart = c3.generate({
+            data: {
+                names: {
+                    data: 'Progress',
+                },
+                columns: [
+                    ['data', progress]
+                ],
+                type: 'gauge',
+            },
+            gauge: {
+                label: {
+                    format: function (value, ratio) {
+                        return value + "% of goal";
+                    },
+                    show: true, // to turn off the min/max labels.
+                },
+                min: 0, // 0 is default, //can handle negative min e.g. vacuum / voltage / current flow / rate of change
+                max: 100, // 100 is default
+                units: '',
+                width: 39, // for adjusting arc thickness
+                expand: true
+            },
+            color: {
+                pattern: ['#FF0000', '#F97600', '#F6C600', '#60B044'], // the three color levels for the percentage values.
+                threshold: {
+                    values: [30, 60, 90, 100]
+                }
+            },
+            size: {
+                height: 180
+            },
+            tooltip: {
+                format: {
+                    value: function (value) {
+                        return value + "%";
+                    }
+                }
+            },
+            bindto: '#progress',
+        });
+    };
+    var workRemaining = function (data) {
+        var mins = estimateMinutesLeft(data);
+        if (mins > 60) {
+            document.getElementById("remaining").innerHTML = "<p>" + Math.floor((mins / 60)).toString() + " hours and " + Math.round(mins % 60).toString() + " minutes left<p>";
+        }
+        else {
+            document.getElementById("remaining").innerHTML = "<p>" + Math.round((mins)).toString() + " minutes left<p>";
+        }
+    };
+
+//    for (k = 0; k <= 5000; k += 1000) {
+//        setTimeout(function () {
+//            var ourData = getFakeData();
+//            buildGuage(ourData);
+//            workRemaining(ourData);
+//        }, k);
+//    }
+    getSampleData("2188");
+</script>
+
+</html>
